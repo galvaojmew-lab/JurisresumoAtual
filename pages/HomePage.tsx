@@ -124,11 +124,8 @@ const HomePage: React.FC = () => {
         } catch (error) {
             console.error('Error generating summary:', error);
             if (error instanceof Error) {
-                if (error.message === "API_KEY_MISSING") {
-                    addToast('Erro: A chave de API do Google não foi configurada.', 'error');
-                } else {
-                    addToast(error.message, 'error');
-                }
+                // The service now throws a user-friendly message for all errors, including API key issues.
+                addToast(error.message, 'error');
             } else {
                 addToast('Ocorreu um erro desconhecido ao gerar o resumo.', 'error');
             }
