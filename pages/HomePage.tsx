@@ -123,9 +123,14 @@ const HomePage: React.FC = () => {
             addToast('Resumos gerados e salvos no histórico!', 'success');
         } catch (error) {
             console.error('Error generating summary:', error);
-            addToast('Ocorreu um erro ao gerar o resumo. Tente novamente.', 'error');
-            if (error instanceof Error && error.message.includes('API key')) {
-                 addToast('Verifique se sua chave de API do Gemini está configurada corretamente.', 'error');
+            if (error instanceof Error) {
+                if (error.message === "API_KEY_MISSING") {
+                    addToast('Erro: A chave de API do Google não foi configurada.', 'error');
+                } else {
+                    addToast(error.message, 'error');
+                }
+            } else {
+                addToast('Ocorreu um erro desconhecido ao gerar o resumo.', 'error');
             }
         } finally {
             setIsLoading(false);

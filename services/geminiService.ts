@@ -8,12 +8,15 @@ declare global {
     }
 }
 
-// Ensure the API key is available. This will be handled by the execution environment.
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set.");
+// Function to get the Gemini AI client instance, checking for API key at runtime.
+function getAiClient() {
+    if (!process.env.API_KEY) {
+        // Throw a specific error that the UI can catch and interpret.
+        throw new Error("API_KEY_MISSING");
+    }
+    return new window.GoogleGenAI({ apiKey: process.env.API_KEY });
 }
 
-const ai = new window.GoogleGenAI({ apiKey: process.env.API_KEY });
 
 interface GenerationOptions {
     generateTechnical: boolean;
@@ -27,6 +30,7 @@ interface Summaries {
 }
 
 async function callGemini(prompt: string, text: string): Promise<string> {
+    const ai = getAiClient();
     const fullPrompt = `${prompt}\n\n${text}`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
@@ -62,10 +66,15 @@ export async function generateSummaries(text: string, options: GenerationOptions
 
     } catch (error) {
         console.error('Error calling Gemini API:', error);
-        // Check for common API key errors and provide a more specific message
-        if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('400'))) {
-             throw new Error('Failed to generate summary. Please check if the API key is valid and has permissions.');
+        // Re-throw specific errors or a generic one. The UI will handle the user message.
+        if (error instanceof Error) {
+            if (error.message === "API_KEY_MISSING") {
+                throw error; // Re-throw the specific error
+            }
+            if (error.message.includes('API key not valid') || error.message.includes('400')) {
+                 throw new Error('A chave de API parece ser inválida ou não ter as permissões necessárias.');
+            }
         }
-        throw new Error('Failed to generate summary from Gemini API.');
+        throw new Error('Falha na comunicação com a API Gemini.');
     }
 }
