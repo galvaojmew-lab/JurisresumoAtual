@@ -1,0 +1,5 @@
+{
+  "name": "JurisResumo",
+  "description": "An AI-powered web application for lawyers to automatically summarize legal documents. It supports PDF, DOCX, and pasted text, providing quick, accurate summaries using Google's Gemini API, with a focus on privacy and local storage.",
+  "requestFramePermissions": []
+}
