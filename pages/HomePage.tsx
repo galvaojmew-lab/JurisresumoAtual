@@ -12,7 +12,7 @@ declare global {
     interface Window {
         jspdf: any;
         html2canvas: any;
-        htmlToDocx: any;
+        save: any; // Corrected from htmlToDocx
     }
 }
 
@@ -164,7 +164,7 @@ const HomePage: React.FC = () => {
         } else {
             const header = `<h1 style="font-family: Arial, sans-serif; font-size: 16pt;">Resumo do Processo: ${processNumber}</h1>`;
             const content = header + element.innerHTML;
-             window.htmlToDocx.save(content, {
+             window.save(content, {
                 filename: `resumo_${processNumber.replace(/\W/g, '_')}.docx`,
             });
         }

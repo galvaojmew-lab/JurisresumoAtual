@@ -10,11 +10,13 @@ declare global {
 
 // Function to get the Gemini AI client instance, checking for API key at runtime.
 function getAiClient() {
-    if (!process.env.API_KEY) {
+    // Per user feedback, the environment variable is VITE_API_KEY.
+    // In this environment, it's accessed via process.env.
+    if (!process.env.VITE_API_KEY) {
         // Throw a specific error that the UI can catch and interpret.
         throw new Error("API_KEY_MISSING");
     }
-    return new window.GoogleGenAI({ apiKey: process.env.API_KEY });
+    return new window.GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
 }
 
 
