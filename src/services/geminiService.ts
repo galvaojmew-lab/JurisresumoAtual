@@ -1,5 +1,7 @@
-// This service now uses the Groq API.
-const API_KEY = process.env.VITE_API_KEY;
+// src/services/geminiService.ts
+
+// ATENÇÃO: Use variáveis de ambiente em produção!
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 interface GenerationOptions {
     generateTechnical: boolean;
@@ -12,24 +14,22 @@ interface Summaries {
     simplified?: string;
 }
 
-// Helper function to call Groq API
-async function callGroq(text: string, type: 'technical' | 'simplified', size: 'short' | 'medium' | 'long'): Promise<string> {
-    if (!API_KEY || !API_KEY.startsWith('gsk_')) {
-        throw new Error('Configure VITE_API_KEY com uma chave válida do Groq (iniciando com gsk_) no seu ambiente.');
+// Helper: chama a API do Google Gemini
+async function callGemini(text: string, type: 'technical' | 'simplified', size: 'short' | 'medium' | 'long'): Promise<string> {
+    if (!API_KEY) {
+        throw new Error('Configure VITE_GEMINI_API_KEY no arquivo .env');
     }
-    
-    const maxWordsTechnical = {
-        short: 500,
-        medium: 1000,
-        long: 1500,
-    };
-    
-    const maxPalavras = type === 'technical'
-        ? maxWordsTechnical[size]
-        : 800;
 
-    const prompt = type === 'technical' 
-    ? `Resuma em até ${maxPalavras} palavras, em português jurídico formal:
+    const maxTokens = {
+        short: 600,
+        medium: 1200,
+        long: 1800,
+    };
+
+    const tokenLimit = type === 'technical' ? maxTokens[size] : 1000;
+
+    const prompt = type === 'technical'
+        ? `Resuma o processo judicial em português jurídico formal, em até ${tokenLimit} tokens:
 1. **Número do Processo**
 2. **Partes** (Autor, Réu, Advogados)
 3. **Objeto da Ação**
@@ -40,9 +40,9 @@ async function callGroq(text: string, type: 'technical' | 'simplified', size: 's
 8. **Riscos e Próximos Passos**
 
 Texto do processo:
-"""${text.substring(0, 100000)}"""`
+"""${text.substring(0, 30000)}"""`
 
-    : `Explique em linguagem simples, até ${maxPalavras} palavras:
+        : `Explique o processo em linguagem simples, até ${tokenLimit} tokens:
 1. O que está acontecendo?
 2. Quem está processando quem e por quê?
 3. O que o autor quer?
@@ -52,35 +52,66 @@ Texto do processo:
 7. O que vai acontecer agora?
 
 Texto:
-"""${text.substring(0, 100000)}"""`;
+"""${text.substring(0, 30000)}"""`;
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'llama3-70b-8192',
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 4000,
-            temperature: 0.1
-        })
-    });
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [{ text: prompt }]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.3,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: tokenLimit,
+                },
+                safetySettings: [
+                    {
+                        category: 'HARM_CATEGORY_HARASSMENT',
+                        threshold: 'BLOCK_ONLY_HIGH'
+                    },
+                    {
+                        category: 'HARM_CATEGORY_HATE_SPEECH',
+                        threshold: 'BLOCK_ONLY_HIGH'
+                    },
+                    {
+                        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                        threshold: 'BLOCK_ONLY_HIGH'
+                    },
+                    {
+                        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                        threshold: 'BLOCK_ONLY_HIGH'
+                    }
+                ]
+            })
+        }
+    );
 
     if (!response.ok) {
         const err = await response.text();
-        console.error(`Erro Groq: ${response.status} - ${err}`);
-        throw new Error(`Erro na API Groq: ${response.status}. Verifique sua chave e o status do serviço.`);
+        console.error(`Erro Gemini: ${response.status} - ${err}`);
+        throw new Error(`Erro na API Gemini: ${response.status}. Verifique sua chave e o status do serviço.`);
     }
 
     const data = await response.json();
-    if (!data.choices || data.choices.length === 0 || !data.choices[0].message) {
-         throw new Error('A API Groq retornou uma resposta inesperada ou vazia.');
+
+    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content?.parts?.[0]?.text) {
+        throw new Error('A API Gemini retornou uma resposta vazia ou inválida.');
     }
-    return data.choices[0].message.content;
+
+    return data.candidates[0].content.parts[0].text.trim();
 }
 
+// Função pública
 export async function generateSummaries(text: string, options: GenerationOptions): Promise<Summaries> {
     if (!options.generateTechnical && !options.generateSimplified) {
         return {};
@@ -90,28 +121,26 @@ export async function generateSummaries(text: string, options: GenerationOptions
         const promises: Promise<string | undefined>[] = [];
 
         if (options.generateTechnical) {
-            promises.push(callGroq(text, 'technical', options.size));
+            promises.push(callGemini(text, 'technical', options.size));
         } else {
             promises.push(Promise.resolve(undefined));
         }
 
         if (options.generateSimplified) {
-            promises.push(callGroq(text, 'simplified', options.size));
+            promises.push(callGemini(text, 'simplified', options.size));
         } else {
             promises.push(Promise.resolve(undefined));
         }
-        
+
         const [technical, simplified] = await Promise.all(promises);
 
         return { technical, simplified };
 
     } catch (error) {
-        console.error('Error generating summaries with Groq:', error);
-        // Re-throw the error so the UI can catch it.
-        // The error message from callGroq is already user-friendly.
+        console.error('Erro ao gerar resumos com Gemini:', error);
         if (error instanceof Error) {
             throw error;
         }
-        throw new Error('Ocorreu um erro desconhecido ao se comunicar com a API Groq.');
+        throw new Error('Ocorreu um erro desconhecido ao se comunicar com a API Gemini.');
     }
 }
