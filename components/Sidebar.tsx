@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 const UploadIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -16,8 +16,21 @@ const HistoryIcon = () => (
 
 const SettingsIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+);
+
+const AdminIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+);
+
+
+const LogoutIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
 );
 
@@ -27,9 +40,15 @@ const MenuIcon = () => (
     </svg>
 );
 
-
 const Sidebar: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const { currentUser, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
         `flex items-center p-3 my-2 transition-colors duration-200 rounded-lg ${isActive
@@ -45,19 +64,33 @@ const Sidebar: React.FC = () => {
                     <span className="text-xl mx-2 font-semibold text-slate-700 dark:text-slate-200">JurisResumo</span>
                 </div>
             </div>
-            <nav className="mt-10 px-2">
-                <NavLink to="/" className={navLinkClasses} end>
-                    <UploadIcon />
-                    <span className="mx-4 font-medium">Resumir Processo</span>
-                </NavLink>
-                <NavLink to="/history" className={navLinkClasses}>
-                    <HistoryIcon />
-                    <span className="mx-4 font-medium">Histórico</span>
-                </NavLink>
-                <NavLink to="/settings" className={navLinkClasses}>
-                    <SettingsIcon />
-                    <span className="mx-4 font-medium">Configurações</span>
-                </NavLink>
+            <nav className="mt-10 px-2 flex flex-col flex-grow">
+                <div className="flex-grow">
+                  <NavLink to="/" className={navLinkClasses} end>
+                      <UploadIcon />
+                      <span className="mx-4 font-medium">Resumir Processo</span>
+                  </NavLink>
+                  <NavLink to="/history" className={navLinkClasses}>
+                      <HistoryIcon />
+                      <span className="mx-4 font-medium">Histórico</span>
+                  </NavLink>
+                  <NavLink to="/settings" className={navLinkClasses}>
+                      <SettingsIcon />
+                      <span className="mx-4 font-medium">Configurações</span>
+                  </NavLink>
+                  {currentUser?.isAdmin && (
+                      <NavLink to="/admin" className={navLinkClasses}>
+                          <AdminIcon />
+                          <span className="mx-4 font-medium">Painel Admin</span>
+                      </NavLink>
+                  )}
+                </div>
+                <div className="mb-4">
+                  <button onClick={handleLogout} className="flex items-center p-3 my-2 w-full text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200">
+                      <LogoutIcon />
+                      <span className="mx-4 font-medium">Sair</span>
+                  </button>
+                </div>
             </nav>
         </>
     );
@@ -73,7 +106,7 @@ const Sidebar: React.FC = () => {
             
             {/* Mobile sidebar */}
             <div className={`fixed inset-0 z-30 transition-opacity bg-black bg-opacity-50 md:hidden ${isOpen ? 'block' : 'hidden'}`} onClick={() => setIsOpen(false)}></div>
-            <div className={`fixed inset-y-0 left-0 z-40 w-64 px-4 py-2 overflow-y-auto bg-white dark:bg-slate-800 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:hidden transition-transform duration-300 ease-in-out`}>
+            <div className={`fixed inset-y-0 left-0 z-40 w-64 px-2 py-2 overflow-y-auto bg-white dark:bg-slate-800 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:hidden transition-transform duration-300 ease-in-out flex flex-col`}>
                 {sidebarContent}
             </div>
 
